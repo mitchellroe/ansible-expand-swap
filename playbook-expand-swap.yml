@@ -1,7 +1,7 @@
 ---
 # file: playbook-expand-swap.yml
 
-- name: expand swap partition to 4GB if needed
+- name: expand swap partition
   hosts: all
   become: yes
   vars:
@@ -14,21 +14,32 @@
     - name: "does {{ vg_name }}/{{ lv_name }} exist?"
       assert:
         that:
+          - ansible_lvm.vgs.{{ vg_name }} is defined
           - ansible_lvm.lvs.{{ lv_name }} is defined
           - ansible_lvm.lvs.{{ lv_name }}.vg == "{{ vg_name }}"
         fail_msg: "{{ vg_name }}/{{ lv_name }} does not exist!"
-        success_msg: "{{ vg_name }}/{{ lv_name }} exist."
+        success_msg: "{{ vg_name }}/{{ lv_name }} exists."
 
-    - block:
-        - name: "does {{ vg_name }}/{{ lv_name }} need resizing?"
-          assert:
-            that:
-              - ansible_lvm.lvs.{{ lv_name }}.size_g >= "{{ min_size_gb }}"
-            success_msg: "{{ vg_name }}/{{ lv_name }} is already >= {{ min_size_gb }}GB"
-            fail_msg: "{{ vg_name }}/{{ lv_name }} needs to be expanded"
-          register: size_check
-      rescue:
-        - debug: msg="will now expand the partition"
+    - name: "is {{ vg_name }}/{{ lv_name }} already big enough?"
+      assert:
+        that:
+          - ansible_lvm.lvs.{{ lv_name }}.size_g >= "{{ min_size_gb }}"
+        success_msg: "{{ vg_name }}/{{ lv_name }} is already >= {{ min_size_gb }}GB"
+        fail_msg: "{{ vg_name }}/{{ lv_name }} needs to be expanded"
+      register: size_check
+      ignore_errors: yes
 
     - when: size_check.failed
-      debug: msg="I would be running right now"
+      block:
+        - name: turn off swap
+          command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
+          notify: turn on swap
+        - name: expand the partition
+          lvol:
+            vg: "{{ vg_name }}"
+            lv: "{{ lv_name }}"
+            size: "{{ min_size_gb }}G"
+            resizefs: yes
+  handlers:
+    - name: turn on swap
+      command: swapon '/dev/{{ vg_name }}/{{ lv_name }}'
