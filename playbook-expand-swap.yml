@@ -33,13 +33,14 @@
       block:
         - name: turn off swap
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
-          notify: turn on swap
+          # We might have already turned it off
+          ignore_errors: yes
         - name: expand the partition
           lvol:
             vg: "{{ vg_name }}"
             lv: "{{ lv_name }}"
             size: "{{ min_size_gb }}G"
-            resizefs: yes
-  handlers:
-    - name: turn on swap
-      command: swapon '/dev/{{ vg_name }}/{{ lv_name }}'
+        - name: recreate swap
+          command: mkswap '/dev/{{ vg_name }}/{{ lv_name }}'
+        - name: turn on swap
+          command: swapon '/dev/{{ vg_name }}/{{ lv_name }}'
