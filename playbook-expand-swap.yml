@@ -1,0 +1,34 @@
+---
+# file: playbook-expand-swap.yml
+
+- name: expand swap partition to 4GB if needed
+  hosts: all
+  become: yes
+  vars:
+    vg_name: sysvg
+    lv_name: swap
+    min_size_gb: 4
+
+  tasks:
+
+    - name: "does {{ vg_name }}/{{ lv_name }} exist?"
+      assert:
+        that:
+          - ansible_lvm.lvs.{{ lv_name }} is defined
+          - ansible_lvm.lvs.{{ lv_name }}.vg == "{{ vg_name }}"
+        fail_msg: "{{ vg_name }}/{{ lv_name }} does not exist!"
+        success_msg: "{{ vg_name }}/{{ lv_name }} exist."
+
+    - block:
+        - name: "does {{ vg_name }}/{{ lv_name }} need resizing?"
+          assert:
+            that:
+              - ansible_lvm.lvs.{{ lv_name }}.size_g >= "{{ min_size_gb }}"
+            success_msg: "{{ vg_name }}/{{ lv_name }} is already >= {{ min_size_gb }}GB"
+            fail_msg: "{{ vg_name }}/{{ lv_name }} needs to be expanded"
+          register: size_check
+      rescue:
+        - debug: msg="will now expand the partition"
+
+    - when: size_check.failed
+      debug: msg="I would be running right now"
