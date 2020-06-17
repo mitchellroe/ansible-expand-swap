@@ -33,8 +33,6 @@
       block:
         - name: turn off swap
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
-          # We might have already turned it off
-          ignore_errors: yes
         - name: expand the partition
           lvol:
             vg: "{{ vg_name }}"
