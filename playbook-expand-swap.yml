@@ -33,24 +33,24 @@
 
     - when: big_enough.failed
       block:
-        - name: how big is the partition?
+        - name: "how big is {{ vg_name }}/{{ lv_name }}?"
           set_fact:
-            current_size_g: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
+            current_size_gb: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
         - name: how much free space do we need?
           set_fact:
-            needed_space_g: "{{ min_size_gb|float - current_size_g|float }}"
-        - name: how much free space do we have?
+            needed_space_gb: "{{ min_size_gb|float - current_size_gb|float }}"
+        - name: "how much free space does {{ vg_name }} have?"
           set_fact:
-            free_space_g: "{{ ansible_lvm['vgs'][vg_name]['free_g']|float }}"
-        - name: do we have enough free space?
+            free_space_gb: "{{ ansible_lvm['vgs'][vg_name]['free_g']|float }}"
+        - name: "is there enough free space in {{ vg_name }}?"
           assert:
             that:
-              - "{{ free_space_g|float >= needed_space_g|float }}"
+              - "{{ free_space_gb|float >= needed_space_gb|float }}"
           register: sufficient_free_space
 
     - when:
         - big_enough.failed == true
-        - sufficient_free_space.failed == false
+        - sufficient_free_space.failed == false # superfluous check, added for clarity
       block:
         - name: turn off swap
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
