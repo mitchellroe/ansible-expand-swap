@@ -55,6 +55,8 @@
           assert:
             that:
               - "{{ free_space_gb|float >= needed_space_gb|float }}"
+            success_msg: "{{ vg_name }} has sufficient free space"
+            fail_msg: "need {{ needed_space_gb }}GB of free space, but only found {{ free_space_gb }}GB!"
           register: enough_free_space
 
     - when:
