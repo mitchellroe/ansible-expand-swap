@@ -29,12 +29,14 @@
         fail_msg: "{{ vg_name }}/{{ lv_name }} does not exist!"
         success_msg: "{{ vg_name }}/{{ lv_name }} exists."
 
+    - name: "how big is {{ vg_name }}/{{ lv_name }}?"
+      set_fact:
+        current_size_gb: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
+
     - name: "is {{ vg_name }}/{{ lv_name }} already big enough?"
       assert:
         that:
-          - ansible_lvm.lvs.{{ lv_name }}.size_g >= "{{ min_size_gb }}"
-            # min_size_gb is in "{{ }}" because otherwise you get false
-            # positives.
+          - "{{ current_size_gb|float >= min_size_gb|float }}"
         success_msg: "{{ vg_name }}/{{ lv_name }} is already >= {{ min_size_gb }}GB"
         fail_msg: "{{ vg_name }}/{{ lv_name }} needs to be expanded"
       register: big_enough
@@ -42,9 +44,6 @@
 
     - when: big_enough.failed
       block:
-        - name: "how big is {{ vg_name }}/{{ lv_name }}?"
-          set_fact:
-            current_size_gb: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
         - name: how much free space do we need?
           set_fact:
             needed_space_gb: "{{ min_size_gb|float - current_size_gb|float }}"
