@@ -36,15 +36,12 @@
         - name: how big is the partition?
           set_fact:
             current_size_g: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
-        - debug: var=current_size_g
         - name: how much free space do we need?
           set_fact:
             needed_space_g: "{{ min_size_gb - current_size_g|float }}"
-        - debug: var=needed_space_g
         - name: how much free space do we have?
           set_fact:
             free_space_g: "{{ ansible_lvm['vgs'][vg_name]['free_g']|float }}"
-        - debug: var=free_space_g
         - name: do we have enough free space?
           assert:
             that:
