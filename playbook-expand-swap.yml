@@ -46,11 +46,11 @@
           assert:
             that:
               - "{{ free_space_gb|float >= needed_space_gb|float }}"
-          register: sufficient_free_space
+          register: enough_free_space
 
     - when:
         - big_enough.failed == true
-        - sufficient_free_space.failed == false # superfluous check, added for clarity
+        - enough_free_space.failed == false # superfluous check, added for clarity
       block:
         - name: turn off swap
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
