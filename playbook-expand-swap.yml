@@ -62,14 +62,14 @@
         - big_enough.failed == true
         - enough_free_space.failed == false # superfluous check, added for clarity
       block:
-        - name: turn off swap
+        - name: "turn off swap for {{ vg_name }}/{{ lv_name }}"
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
-        - name: expand the partition
+        - name: "expand {{ vg_name }}/{{ lv_name }}"
           lvol:
             vg: "{{ vg_name }}"
             lv: "{{ lv_name }}"
             size: "{{ min_size_gb }}G"
-        - name: recreate swap
+        - name: "recreate the swap partition on {{ vg_name }}/{{ lv_name }}"
           command: mkswap '/dev/{{ vg_name }}/{{ lv_name }}'
-        - name: turn on swap
+        - name: "turn swap back on for {{ vg_name }}/{{ lv_name }}"
           command: swapon '/dev/{{ vg_name }}/{{ lv_name }}'
