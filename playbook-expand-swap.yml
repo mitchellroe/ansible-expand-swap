@@ -24,12 +24,36 @@
       assert:
         that:
           - ansible_lvm.lvs.{{ lv_name }}.size_g >= "{{ min_size_gb }}"
+            # min_size_gb is in "{{ }}" because otherwise you get false
+            # positives.
         success_msg: "{{ vg_name }}/{{ lv_name }} is already >= {{ min_size_gb }}GB"
         fail_msg: "{{ vg_name }}/{{ lv_name }} needs to be expanded"
-      register: size_check
+      register: big_enough
       ignore_errors: yes
 
-    - when: size_check.failed
+    - when: big_enough.failed
+      block:
+        - name: how big is the partition?
+          set_fact:
+            current_size_g: "{{ ansible_lvm['lvs'][lv_name]['size_g']|float }}"
+        - debug: var=current_size_g
+        - name: how much free space do we need?
+          set_fact:
+            needed_space_g: "{{ min_size_gb - current_size_g|float }}"
+        - debug: var=needed_space_g
+        - name: how much free space do we have?
+          set_fact:
+            free_space_g: "{{ ansible_lvm['vgs'][vg_name]['free_g']|float }}"
+        - debug: var=free_space_g
+        - name: do we have enough free space?
+          assert:
+            that:
+              - "{{ free_space_g|float >= needed_space_g|float }}"
+          register: sufficient_free_space
+
+    - when:
+        - big_enough.failed == true
+        - sufficient_free_space.failed == false
       block:
         - name: turn off swap
           command: swapoff '/dev/{{ vg_name }}/{{ lv_name }}'
