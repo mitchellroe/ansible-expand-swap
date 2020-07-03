@@ -2,7 +2,7 @@
 # file: playbook-expand-swap.yml
 
 - name: group hosts by their distribution and major version
-  hosts: all
+  hosts: servers
   tasks:
     - name: group hosts by their distribution and major version
       group_by:
@@ -10,8 +10,7 @@
     - debug:
         msg: "os_{{ ansible_facts['distribution'] }}_{{ ansible_facts['distribution_major_version'] }}"
 
-- name: expand swap partition on RHEL 8 hosts
-  hosts: os_RedHat_8
+- hosts: os_RedHat_8
   become: yes
   vars:
     vg_name: sysvg
